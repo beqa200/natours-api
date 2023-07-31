@@ -1,0 +1,11 @@
+{
+    "compilerOptions": {
+        "esModuleInterop": true,
+        
+      },
+    "include": [
+      "types.ts",
+      "app.ts"  // Adjust this to match your actual source code directory
+    ],
+    "exclude": ["node_modules"]
+  }
