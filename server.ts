@@ -1,9 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config({ path: './config.env' });
-
 import app from './app';
 import mongoose from 'mongoose';
-// console.log(process.env);
 
 if (!process.env.DATABASE_URL || !process.env.DATABASE_PASSWORD) {
   throw new Error(
@@ -18,7 +16,7 @@ const DB_URL = process.env.DATABASE_URL?.replace(
 try {
   DB_URL &&
     mongoose.connect(DB_URL).then((con) => {
-      console.log(con.connections);
+      // console.log(con.connections);
       console.log('Database connected!');
     });
 } catch (error) {
