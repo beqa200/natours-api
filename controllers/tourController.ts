@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 import Tour from '../models/tourModel';
+import { SortOrder } from 'mongoose';
 
 declare module 'express-serve-static-core' {
   interface Request {
@@ -24,11 +25,44 @@ declare module 'express-serve-static-core' {
 const getAllTours = async (req: Request, res: Response) => {
   try {
     // BUILD QUERY
+    // 1A) Filtering
     const queryObj = { ...req.query };
     const excludedFields = ['page', 'sort', 'limit', 'fields'];
     excludedFields.forEach((el) => delete queryObj[el]);
 
-    const query = Tour.find(queryObj);
+    // 1B) Advanced filtering
+    let queryStr = JSON.stringify(queryObj);
+    queryStr = queryStr.replace(/\b(gte|gt|lte|lt)\b/g, (match) => `$${match}`);
+
+    let query = Tour.find(JSON.parse(queryStr));
+
+    // 2) Sorting
+    if (req.query.sort) {
+      let sortValue:
+        | string
+        | { [key: string]: SortOrder }
+        | [string, SortOrder][] = req.query.sort as string;
+
+      sortValue = sortValue.split(',').join(' ');
+
+      if (typeof sortValue !== 'string') {
+        sortValue = sortValue as
+          | { [key: string]: SortOrder }
+          | [string, SortOrder][];
+      }
+
+      query = query.sort(sortValue);
+    } else {
+      query = query.sort('-createdAt');
+    }
+
+    // 3) Field limiting
+    if(req.query.fields) {
+      const fieldsValue = req.query.fields as String;
+      const fields = fieldsValue.split(",").join(" ");
+
+      query = query.select(fields);
+    }
 
     // EXECUTE QUERY
     const tours = await query;
