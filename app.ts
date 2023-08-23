@@ -7,7 +7,7 @@ const app = express();
 
 // MIDDLEWARES
 
-console.log(process.env.NODE_ENV)
+console.log(process.env.NODE_ENV);
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
@@ -26,5 +26,12 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 app.use('/api/v1/tours', tourRouter);
 app.use('/api/v1/users', userRouter);
+
+app.all('*', (req: Request, res: Response) => {
+  res.status(404).json({
+    status: 'fails',
+    message: `Can't find ${req.originalUrl} on this server`,
+  });
+});
 
 export default app;
