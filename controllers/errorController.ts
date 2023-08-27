@@ -1,10 +1,22 @@
 import { Request, Response, NextFunction } from 'express';
+import AppError from '../utils/appError';
+import { ErrorType } from '../types';
 
-interface ErrorType extends Error {
-  status: string;
-  statusCode: number;
-  isOperational: boolean;
-}
+const handleCastErrorDB = (err: ErrorType) => {
+  const message = `Invalid ${err.path}: ${err.value}`;
+  return new AppError(message, 400);
+};
+
+const handleDuplicateFieldsDB = (err: ErrorType) => {
+  const message = `Duplicate field value: ${err.keyValue.name}.  Please use another value`;
+  return new AppError(message, 400);
+};
+
+const handleValidationErrorDB = (err: any) => {
+  const errors = Object.values(err.errors).map((el: any) => el.message);
+  const message = `Invalid input data. ${errors.join('. ')}`;
+  return new AppError(message, 400);
+};
 
 const sendErrorDev = (err: ErrorType, res: Response) => {
   res.status(err.statusCode).json({
@@ -39,8 +51,16 @@ export default (
   err.status = err.status || 'error';
 
   if (process.env.NODE_ENV === 'development') {
+    
     sendErrorDev(err, res);
   } else if (process.env.NODE_ENV === 'production') {
-    sendErrorProd(err, res);
+    let error = Object.create(err);
+
+    if (error.name === 'CastError') error = handleCastErrorDB(error);
+    if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+    if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
+
+    
+    sendErrorProd(error, res);
   }
 };
