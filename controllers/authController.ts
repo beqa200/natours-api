@@ -13,10 +13,7 @@ const signToken = (id: Object) => {
 const signup = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     const newUser = await User.create({
-      name: req.body.name,
-      email: req.body.email,
-      password: req.body.password,
-      passwordConfirm: req.body.passwordConfirm,
+      ...req.body,
       passwordChangedAt: new Date(),
     });
 
@@ -58,7 +55,7 @@ const login = catchAsync(
 const protect = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
     // 1) Getting token and check of it's there
-    let token;
+    let token: string;
     if (
       req.headers.authorization &&
       req.headers.authorization.startsWith('Bearer')
@@ -71,6 +68,7 @@ const protect = catchAsync(
         new AppError('You are not logged in! Please log in to get access.', 401)
       );
     }
+
     // 2) Verification token
 
     //@ts-ignore
@@ -80,6 +78,7 @@ const protect = catchAsync(
     )(token, process.env.JWT_SECRET);
 
     console.log(decoded);
+
     // 3) Check if user still exists
     const freshUser: any = await User.findById(decoded.id);
     if (!freshUser) {
@@ -90,6 +89,7 @@ const protect = catchAsync(
         )
       );
     }
+
     // 4) Check if user changed password after the token was issued
     if (freshUser.changedPasswordAfter(decoded.iat)) {
       return next(
@@ -99,10 +99,22 @@ const protect = catchAsync(
         )
       );
     }
-
+    //@ts-ignore
+    req.user = freshUser
     // GRANT ACCESS TO PROTECTED ROUTE
     next();
   }
 );
 
-export { signup, login, protect };
+const restrictTo = (...roles: string[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    //@ts-ignore
+    if(!roles.includes(req.user.role)) {
+      return next(new AppError("You do not have permission to perform this action", 403))
+    }
+
+    next();
+  }
+}
+
+export { signup, login, protect, restrictTo };

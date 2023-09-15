@@ -16,6 +16,11 @@ const userSchema = new mongoose.Schema({
     validate: [validator.isEmail, 'Please provide a valid email'],
   },
   photo: String,
+  role: {
+    type: String,
+    enum: ['user', 'guide', 'lead-guide', 'admin'],
+    default: 'user',
+  },
   password: {
     type: String,
     required: [true, 'Please provide a password'],
@@ -32,7 +37,7 @@ const userSchema = new mongoose.Schema({
       message: 'Passwords are not the same',
     },
   },
-  passwordChangedAt: Date
+  passwordChangedAt: Date,
 });
 
 userSchema.pre<any>('save', async function (next) {
@@ -43,18 +48,23 @@ userSchema.pre<any>('save', async function (next) {
   this.passwordConfirm = undefined;
 });
 
-userSchema.methods.correctPassword = async function(candidatePassword: string, userPassword: string) {
-  return await bcrypt.compare(candidatePassword, userPassword)
-}
+userSchema.methods.correctPassword = async function (
+  candidatePassword: string,
+  userPassword: string
+) {
+  return await bcrypt.compare(candidatePassword, userPassword);
+};
 
-userSchema.methods.changedPasswordAfter = function(JWTTimestamp: number) {
-  if(this.passwordChangedAt) {
+userSchema.methods.changedPasswordAfter = function (JWTTimestamp: number) {
+  if (this.passwordChangedAt) {
     //@ts-ignore
-    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000, 10) ;
-    return JWTTimestamp < changedTimestamp
+    const changedTimestamp = parseInt(this.passwordChangedAt.getTime() / 1000,
+      10
+    );
+    return JWTTimestamp < changedTimestamp;
   }
- return false;
-}
+  return false;
+};
 const User = mongoose.model('User', userSchema);
 
 export default User;
