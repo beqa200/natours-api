@@ -9,7 +9,7 @@ export interface ErrorType extends Error {
 }
 
 interface keyValueType {
-    name: string;
+  name: string;
 }
 
 export interface UserDocument extends Document {
@@ -22,9 +22,8 @@ export interface UserDocument extends Document {
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
-  
-  
+
   createPasswordResetToken(): string;
   correctPassword(password: any, userPassword: any): Promise<string>;
-  changedPasswordAfter(iat: number): string 
+  changedPasswordAfter(iat: number): string;
 }
