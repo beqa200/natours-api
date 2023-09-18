@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import AppError from '../utils/appError';
 import User from '../models/userModel';
 import catchAsync from '../utils/catchAsync';
+import { RequestCustomType } from '../types';
 
 const filterObj = (obj: any, ...allowedFields: string[]) => {
   const newObj = {};
@@ -13,7 +14,7 @@ const filterObj = (obj: any, ...allowedFields: string[]) => {
 };
 
 const updateMe = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: RequestCustomType, res: Response, next: NextFunction) => {
     // 1) Create error if user POSTs password data
     if (req.body.password || req.body.passwordConfirm) {
       return next(
@@ -25,9 +26,11 @@ const updateMe = catchAsync(
     }
 
     // 2) Update user document
+    //Filtered out unwanted fields names
     const filteredBody = filterObj(req.body, 'name', 'email');
-    //@ts-ignore
-    const updatedUser = await User.findByIdAndUpdate(req.user.id,
+
+    const updatedUser = await User.findByIdAndUpdate(
+      req.user.id,
       filteredBody,
       { new: true, runValidators: true }
     );
@@ -39,12 +42,27 @@ const updateMe = catchAsync(
   }
 );
 
-const getAllUsers = (req: Request, res: Response) => {
+const deleteMe = catchAsync(
+  async (req: RequestCustomType, res: Response, next: NextFunction) => {
+    await User.findByIdAndUpdate(req.user.id, { active: false });
+
+    res.status(204).json({
+      status: 'success',
+      data: null,
+    });
+  }
+);
+
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const users = await User.find();
   res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined',
+    status: 'success',
+    results: users.length,
+    data: {
+      users,
+    },
   });
-};
+});
 
 const createUser = (req: Request, res: Response) => {
   res.status(500).json({
@@ -71,4 +89,12 @@ const deleteUser = (req: Request, res: Response) => {
   });
 };
 
-export { getAllUsers, createUser, getUser, updateUser, deleteUser, updateMe };
+export {
+  getAllUsers,
+  createUser,
+  getUser,
+  updateUser,
+  deleteUser,
+  updateMe,
+  deleteMe,
+};

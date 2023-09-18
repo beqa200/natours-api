@@ -1,3 +1,4 @@
+import { Request } from "express";
 export interface ErrorType extends Error {
   status: string;
   statusCode: number;
@@ -22,8 +23,14 @@ export interface UserDocument extends Document {
   passwordChangedAt?: Date;
   passwordResetToken?: string;
   passwordResetExpires?: Date;
+  active: boolean;
+  id: string
 
   createPasswordResetToken(): string;
   correctPassword(password: any, userPassword: any): Promise<string>;
   changedPasswordAfter(iat: number): string;
 }
+
+export interface RequestCustomType extends Request {
+  user: UserDocument
+} 

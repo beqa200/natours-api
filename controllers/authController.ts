@@ -6,6 +6,7 @@ import AppError from '../utils/appError';
 import { promisify } from 'util';
 import sendEmail from '../utils/email';
 import crypto from 'crypto';
+import { RequestCustomType } from '../types';
 const signToken = (id: Object) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN,
@@ -54,7 +55,7 @@ const login = catchAsync(
 );
 
 const protect = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: RequestCustomType, res: Response, next: NextFunction) => {
     // 1) Getting token and check of it's there
     let token: string;
     if (
@@ -100,7 +101,7 @@ const protect = catchAsync(
         )
       );
     }
-    //@ts-ignore
+  
     req.user = freshUser;
     // GRANT ACCESS TO PROTECTED ROUTE
     next();
@@ -108,8 +109,8 @@ const protect = catchAsync(
 );
 
 const restrictTo = (...roles: string[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    //@ts-ignore
+  return (req: RequestCustomType, res: Response, next: NextFunction) => {
+
     if (!roles.includes(req.user.role)) {
       return next(
         new AppError('You do not have permission to perform this action', 403)
@@ -197,10 +198,9 @@ const resetPassword = catchAsync(
 );
 
 const updatePassword = catchAsync(
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: RequestCustomType, res: Response, next: NextFunction) => {
     // 1) Get user from collection
 
-    //@ts-ignore
     const user = await User.findById(req.user.id).select("+password");
     // 2) Check if POSTed current password is correct
     // 3) If so, update password

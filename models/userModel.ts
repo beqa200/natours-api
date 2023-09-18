@@ -4,6 +4,7 @@ import validator from 'validator';
 import bcrypt from 'bcrypt';
 import { SchemaOptions } from 'mongoose';
 import { UserDocument } from '../types';
+import { NextFunction } from 'express';
 // name, email, photo, password, passwordConfirm
 
 const userSchema = new mongoose.Schema<UserDocument>({
@@ -43,9 +44,14 @@ const userSchema = new mongoose.Schema<UserDocument>({
   passwordChangedAt: Date,
   passwordResetToken: String,
   passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false
+  }
 });
 
-userSchema.pre<any>('save', async function (next) {
+userSchema.pre<any>('save', async function (next: NextFunction) {
   if (!this.isModified('password')) return next();
 
   this.password = await bcrypt.hash(this.password, 12);
@@ -53,9 +59,14 @@ userSchema.pre<any>('save', async function (next) {
   this.passwordConfirm = undefined;
 });
 
-userSchema.pre("save", function(next) {
+userSchema.pre("save", function(next: NextFunction) {
   if(!this.isModified("password") || this.isNew) return next();
   this.passwordChangedAt = new Date(Date.now() - 1000);
+  next();
+})
+
+userSchema.pre<any>(/^find/, function(next: NextFunction) {
+  this.find({active: {$ne: false}});
   next();
 })
 
