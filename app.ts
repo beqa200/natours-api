@@ -6,8 +6,8 @@ import AppError from './utils/appError';
 import globalErrorHandler from './controllers/errorController';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import mongoSanitize  from 'express-mongo-sanitize';
-import xss from "xss-clean";
+import mongoSanitize from 'express-mongo-sanitize';
+import hpp from 'hpp';
 
 const app = express();
 
@@ -22,26 +22,35 @@ if (process.env.NODE_ENV === 'development') {
 const limiter = rateLimit({
   max: 100,
   windowMs: 60 * 60 * 1000,
-  message: "Too many requests from this IP, please try again in an hour!"
-})
-app.use("/api", limiter);
+  message: 'Too many requests from this IP, please try again in an hour!',
+});
+app.use('/api', limiter);
 
 //Set security HTPP headers
 app.use(helmet());
 
 // Body parser, reading data from body into req.body
-app.use(express.json({limit: "kb"}));
+app.use(express.json({ limit: 'kb' }));
 
 // Data sanitization against NoSQL query injection
 app.use(mongoSanitize());
 
-// Data sanitization against XSS
+// Prevent parameter pollution
+app.use(
+  hpp({
+    whitelist: [
+      'duration',
+      'ratingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price',
+    ],
+  })
+);
 
 // Serving static files
 app.use(express.static(`${__dirname}/public`));
-
-
-
 
 // Test middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
