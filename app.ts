@@ -4,23 +4,46 @@ import tourRouter from './routes/tourRoutes';
 import userRouter from './routes/userRoutes';
 import AppError from './utils/appError';
 import globalErrorHandler from './controllers/errorController';
+import rateLimit from 'express-rate-limit';
+import helmet from 'helmet';
+import mongoSanitize  from 'express-mongo-sanitize';
+import xss from "xss-clean";
 
 const app = express();
 
 // MIDDLEWARES
 
-console.log(process.env.NODE_ENV);
+// Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
-app.use(express.json());
+
+// Limit requests from same API
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: "Too many requests from this IP, please try again in an hour!"
+})
+app.use("/api", limiter);
+
+//Set security HTPP headers
+app.use(helmet());
+
+// Body parser, reading data from body into req.body
+app.use(express.json({limit: "kb"}));
+
+// Data sanitization against NoSQL query injection
+app.use(mongoSanitize());
+
+// Data sanitization against XSS
+
+// Serving static files
 app.use(express.static(`${__dirname}/public`));
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-  console.log('Hello from middleware');
-  next();
-});
 
+
+
+// Test middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   req.requestTime = new Date().toISOString();
   next();

@@ -15,15 +15,31 @@ const signToken = (id: Object) => {
 
 const createSendToken = (user, statusCode: number, res: Response) => {
   const token = signToken(user._id);
+  const cookieOption = {
+    expires: new Date(
+      Date.now() +
+        (process.env.JWT_COOKIE_EXPIRES_IN as unknown as number) *
+          24 *
+          60 *
+          60 *
+          1000
+    ),
+    httpOnly: true, //cookie can not access and modified by browser
+  };
+  //@ts-ignore
+  if(process.env.NODE_ENV === "production") cookieOption.secure = true; //send cookie when use https
+  res.cookie('jwt', token, cookieOption);
 
-    res.status(statusCode).json({
-      status: 'success',
-      token,
-      data: {
-        user
-      },
-    });
-}
+  user.password = undefined;
+
+  res.status(statusCode).json({
+    status: 'success',
+    token,
+    data: {
+      user,
+    },
+  });
+};
 
 const signup = catchAsync(
   async (req: Request, res: Response, next: NextFunction) => {
@@ -32,7 +48,6 @@ const signup = catchAsync(
       passwordChangedAt: new Date(),
     });
     createSendToken(newUser, 201, res);
-    
   }
 );
 
@@ -101,7 +116,7 @@ const protect = catchAsync(
         )
       );
     }
-  
+
     req.user = freshUser;
     // GRANT ACCESS TO PROTECTED ROUTE
     next();
@@ -110,7 +125,6 @@ const protect = catchAsync(
 
 const restrictTo = (...roles: string[]) => {
   return (req: RequestCustomType, res: Response, next: NextFunction) => {
-
     if (!roles.includes(req.user.role)) {
       return next(
         new AppError('You do not have permission to perform this action', 403)
@@ -193,7 +207,6 @@ const resetPassword = catchAsync(
 
     await user.save();
     createSendToken(user, 200, res);
-
   }
 );
 
@@ -201,10 +214,12 @@ const updatePassword = catchAsync(
   async (req: RequestCustomType, res: Response, next: NextFunction) => {
     // 1) Get user from collection
 
-    const user = await User.findById(req.user.id).select("+password");
+    const user = await User.findById(req.user.id).select('+password');
     // 2) Check if POSTed current password is correct
     // 3) If so, update password
-    if (!await user.correctPassword(req.body.currentPassword, user.password)) {
+    if (
+      !(await user.correctPassword(req.body.currentPassword, user.password))
+    ) {
       return next(new AppError('Your current password is wrong', 401));
     }
     user.password = req.body.newPassword;
@@ -213,8 +228,15 @@ const updatePassword = catchAsync(
 
     // 4) Log user in, send JWT
     createSendToken(user, 200, res);
-
   }
 );
 
-export { signup, login, protect, restrictTo, forgotPassword, resetPassword, updatePassword };
+export {
+  signup,
+  login,
+  protect,
+  restrictTo,
+  forgotPassword,
+  resetPassword,
+  updatePassword,
+};
